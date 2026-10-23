@@ -16,10 +16,9 @@ la nota.
 
 | Nombre completo | Código |
 |---|---|
-| | |
-| | |
-| | |
-| | |
+| Daniela Franco Ibarra | 202477154 |
+| Dayan Stefany Marulanda Pulido | 202477427 |
+| Juan Alejandro Márquez Varón | 202559853 |
 
 ## Cómo está organizado el proyecto
 
