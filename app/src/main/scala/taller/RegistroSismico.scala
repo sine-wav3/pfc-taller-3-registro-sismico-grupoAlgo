@@ -45,13 +45,16 @@ class RegistroSismico {
   def redondear(x: Double): Double = Math.round(x * 100.0) / 100.0
 
   /** La secuencia infinita que empieza en la magnitud y multiplica por 0.8. */
-  def replicas(magnitud: Double): LazyList[Double] = ???
+  def replicas(magnitud: Double): LazyList[Double] =
+    LazyList.iterate(redondear(magnitud))(x => redondear(x * 0.8))
 
   /** Las réplicas mientras superen el mínimo, incluida la primera. */
-  def replicasSensibles(magnitud: Double, minimo: Double): List[Double] = ???
+  def replicasSensibles(magnitud: Double, minimo: Double): List[Double] =
+    replicas(magnitud).takeWhile(x => x > minimo).toList
 
   // Punto 5: informe combinado --------------------------------------------------
 
   /** Conteo, magnitud máxima y réplicas esperadas del sismo más fuerte, por región. */
   def informe(r: Registro, minimo: Double): Map[String, Resumen] = ???
+
 }
