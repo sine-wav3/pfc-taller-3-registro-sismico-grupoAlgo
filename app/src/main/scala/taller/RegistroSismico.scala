@@ -19,7 +19,18 @@ class RegistroSismico {
   def enRegion(r: Registro, region: String): List[Double] = ???
 
   /** Parejas de regiones distintas con algún sismo de magnitudes cercanas. */
-  def paresCercanos(r: Registro, dif: Double): List[(String, String)] = ???
+  def paresCercanos(r: Registro, dif: Double): List[(String, String)] = {
+    for {
+      (a, i) <- r.map(_.region).distinct.zipWithIndex
+      (b, j) <- r.map(_.region).distinct.zipWithIndex // distinct elimina regiones repetidas. zipWithIndex identifica
+      // las tuplas con indices de posicion
+      if i < j // i y j son los indices (ya que el for crea un producto cartesiano). la comparacion es para que no
+      // se comparen dos regiones iguales o pares duplicados en orden inverso
+      if r.exists(s1 => s1.region == a && // mientras que a y b se refiere a la primera y segunda region respectivamente
+        r.exists(s2 => s2.region == b &&
+          Math.abs(s1.magnitud - s2.magnitud) <= dif))
+    } yield (a, b)
+  }
 
   // Punto 2: agrupar con mapas --------------------------------------------------
 
