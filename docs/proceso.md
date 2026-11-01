@@ -128,4 +128,59 @@ sequenceDiagram
     L5-->>Main: return 120
 ```
 
+## Punto 4: réplicas perezosas
 
+```scala
+def replicas(magnitud: Double): LazyList[Double] =
+  LazyList.iterate(redondear(magnitud))(x => redondear(x * 0.8))
+
+def replicasSensibles(magnitud: Double, minimo: Double): List[Double] =
+  replicas(magnitud).takeWhile(x => x > minimo).toList
+```
+
+Este punto no usa expresiones `for`, solo `LazyList.iterate` y `takeWhile`.
+
+### Traza de `replicas(5.0).take(4).toList`
+
+`LazyList.iterate(a)(f)` guarda la cabeza `a` y deja la cola como un cálculo
+pendiente, `iterate(f(a))(f)`, que solo se ejecuta cuando alguien la pide.
+
+| Paso | Qué se evalúa | Elementos calculados |
+|---|---|---|
+| 1 | `replicas(5.0)`: cabeza $5.0$, cola pendiente | $5.0$ |
+| 2 | `take(4)`: no calcula nada, limita a 4 | $5.0$ |
+| 3 | `toList` pide la cola: $\text{redondear}(5.0 \cdot 0.8)$ | $5.0,\ 4.0$ |
+| 4 | pide la cola: $\text{redondear}(4.0 \cdot 0.8)$ | $5.0,\ 4.0,\ 3.2$ |
+| 5 | pide la cola: $\text{redondear}(3.2 \cdot 0.8)$ | $5.0,\ 4.0,\ 3.2,\ 2.56$ |
+| 6 | ya hay 4 elementos: `take` corta y no pide la cola | — |
+
+```mermaid
+sequenceDiagram
+    participant T as toList
+    participant K as take(4)
+    participant L as LazyList.iterate
+    T->>K: dame el siguiente
+    K->>L: cabeza 5.0
+    L-->>T: 5.0
+    T->>L: cola pendiente
+    L-->>T: 4.0
+    T->>L: cola pendiente
+    L-->>T: 3.2
+    T->>L: cola pendiente
+    L-->>T: 2.56
+    K-->>T: fin (no se pide el quinto)
+```
+
+### Por qué no agota la memoria
+
+La secuencia es infinita solo como definición. En memoria existen únicamente
+los elementos que ya se pidieron; el resto es una función pendiente. Con
+`take(4)` se calculan 4 elementos. Una `List` infinita no podría construirse,
+porque exigiría calcular todos los elementos antes de devolver nada.
+
+### Traza de `replicasSensibles(5.0, 3.0)`
+
+`takeWhile(_ > 3.0)` evalúa elemento por elemento:
+$5.0 > 3.0$ sí, $4.0 > 3.0$ sí, $3.2 > 3.0$ sí, $2.56 > 3.0$ no, y se detiene.
+Resultado: `List(5.0, 4.0, 3.2)`. El 2.56 se calcula pero no entra, y no se
+calcula nada más allá.
