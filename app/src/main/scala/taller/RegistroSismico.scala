@@ -16,7 +16,12 @@ class RegistroSismico {
   def fuertes(r: Registro, umbral: Double): List[String] = ???
 
   /** Las magnitudes registradas en una región. */
-  def enRegion(r: Registro, region: String): List[Double] = ???
+  def enRegion(r: Registro, region: String): List[Double] = {
+    for {
+      s <- r // registro se asocia al string (region)
+      if s.region == region // filtra por pareja
+    } yield s.magnitud // devuelve la magnitud de la pareja asociada
+  }
 
   /** Parejas de regiones distintas con algún sismo de magnitudes cercanas. */
   def paresCercanos(r: Registro, dif: Double): List[(String, String)] = {
