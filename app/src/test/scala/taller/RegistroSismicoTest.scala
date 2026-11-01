@@ -13,7 +13,7 @@ class RegistroSismicoTest extends AnyFunSuite {
 
   val vacio: List[Sismo] = List()
 
-  // Punto 1 -------------------------------------------------------------------
+  // Punto 1: funcion fuertes -------------------------------------------------------------------
 
   test("fuertes: los que superan 5.0, en orden") {
     assert(fuertes(registro, 5.0) == List("Santander", "Choco", "Valle"))
@@ -28,10 +28,35 @@ class RegistroSismicoTest extends AnyFunSuite {
   }
 
   test("fuertes: el umbral es estricto") {
-    // Hay un sismo de magnitud 6.0 exacta; con umbral 6.0 no debe salir.
     assert(!fuertes(registro, 6.0).contains("Choco"))
   }
 
+  // Punto 1: funcion fuertes pruebas propuestas --------------------------------------------------
+
+  test("fuertes: el umbral estricto deja fuera la magnitud mínima 3.1") {
+    assert(fuertes(registro, 3.1).length == 6)
+  }
+
+  test("fuertes: con umbral 4.0 salen las regiones repetidas, en orden de aparición") {
+    assert(fuertes(registro, 4.0) ==
+      List("Valle", "Santander", "Choco", "Santander", "Valle"))
+  }
+
+  test("fuertes: sobre el registro vacío no hay regiones") {
+    assert(fuertes(vacio, 1.0) == List())
+  }
+
+  test("fuertes: con umbral negativo salen todas las regiones en orden") {
+    assert(fuertes(registro, -1.0) ==
+      List("Valle", "Santander", "Valle", "Choco", "Santander", "Valle", "Choco"))
+  }
+
+
+  test("fuertes: con 5.2 solo salen Choco y Valle, en orden de aparición") {
+    assert(fuertes(registro, 5.2) == List("Choco", "Valle"))
+  }
+
+  // Punto 1: función enRegion -------------------------------------------------------------------------------
   test("enRegion: las magnitudes del Valle") {
     assert(enRegion(registro, "Valle") == List(4.2, 3.8, 5.3))
   }
@@ -43,6 +68,32 @@ class RegistroSismicoTest extends AnyFunSuite {
   test("enRegion: sobre el registro vacío no hay magnitudes") {
     assert(enRegion(vacio, "Valle") == List())
   }
+
+  // Punto 1: funcion enRegion pruebas propuestas ------------------------------------------------------
+
+  test("enRegion: las magnitudes de Cauca en reg2") {
+    assert(enRegion(registro, "Cauca") == List())
+  }
+
+  test("enRegion: las magnitudes del Choco conservan el orden del registro") {
+    assert(enRegion(registro, "Choco") == List(6.0, 3.1))
+  }
+
+  test("enRegion: las magnitudes de Santander") {
+    assert(enRegion(registro, "Santander") == List(5.1, 4.7))
+  }
+
+  test("enRegion: distingue mayúsculas y minúsculas") {
+    assert(enRegion(registro, "cauca") == List())
+  }
+
+  test("enRegion: la suma de las cantidades por región es el total de sismos") {
+    val total = registro.map(_.region).distinct
+      .map(reg => enRegion(registro, reg).length).sum
+    assert(total == registro.length)
+  }
+
+  // Punto 1: funcion paresCercanos ---------------------------------------------------------------------
 
   test("paresCercanos: con 0.6 solo Valle y Santander") {
     assert(paresCercanos(registro, 0.6) == List(("Valle", "Santander")))
@@ -65,6 +116,33 @@ class RegistroSismicoTest extends AnyFunSuite {
   test("paresCercanos: nunca empareja una región consigo misma") {
     assert(paresCercanos(registro, 5.0).forall { case (a, b) => a != b })
   }
+
+  // Punto 1: funcion paresCercanos pruebas propuestas -------------------------------------------------------
+
+  test("paresCercanos: con 0.8 Santander y Choco quedan fuera (difieren 0.9)") {
+    assert(!paresCercanos(registro, 0.8).contains(("Santander", "Choco")))
+  }
+
+  test("paresCercanos: con una sola región no hay parejas") {
+    val unaRegion = List(
+      Sismo(Fecha(2024, 1), "Valle", 4.0, 10),
+      Sismo(Fecha(2024, 2), "Valle", 4.1, 12)
+    )
+    assert(paresCercanos(unaRegion, 10.0) == List())
+  }
+
+  test("paresCercanos: con dif muy grande salen exactamente tres parejas") {
+    assert(paresCercanos(registro, 10.0).length == 3)
+  }
+
+  test("paresCercanos: sobre el registro vacío no hay parejas") {
+    assert(paresCercanos(vacio, 1.0) == List())
+  }
+
+  test("paresCercanos: con 2.0 Cauca y Huila quedan fuera (difieren 2.5)") {
+    assert(!paresCercanos(registro, 2.0).contains(("Cauca", "Huila")))
+  }
+
 
   // Punto 2 -------------------------------------------------------------------
 
