@@ -158,6 +158,26 @@ class RegistroSismicoTest extends AnyFunSuite {
     assert(replicasSensibles(3.0, 3.0) == List())
   }
 
+
+  // Punto 4: Pruebas propuestas------------------------------------------------
+
+  test("replicas: desde 10.0 salen 10.0, 8.0, 6.4") {
+    assert(replicas(10.0).take(3).toList == List(10.0, 8.0, 6.4))
+  }
+  test("replicas: desde 1.0 el tercer elemento es 0.64") {
+    assert(replicas(1.0)(2) == 0.64)
+  }
+  test("replicas: cada elemento es menor que el anterior") {
+    val xs = replicas(8.0).take(10).toList
+    assert(xs.zip(xs.tail).forall { case (a, b) => b < a })
+  }
+  test("replicasSensibles: desde 6.0 con mínimo 3.0") {
+    assert(replicasSensibles(6.0, 3.0) == List(6.0, 4.8, 3.84, 3.07))
+  }
+  test("replicasSensibles: el mínimo estricto deja solo la primera") {
+    assert(replicasSensibles(5.0, 4.0) == List(5.0))
+  }
+
   // Punto 5 -------------------------------------------------------------------
 
   test("informe: el resumen de las tres regiones") {
