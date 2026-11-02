@@ -57,8 +57,14 @@ class RegistroSismico {
   }
 
   def magnitudMaxima(r: Registro): Map[String, Double] = {
-    r.groupMapReduce(_.region)(_.magnitud)((a, b) => Math.max(a, b))
+    r.groupMapReduce(_.region)(_.magnitud)(math.max)
   }
+
+  // se optó por usar groupMapReduce en las anteriores dos funciones ya que realiza las operaciones
+  // necesarias en una sola pasada y ademas se evita crear colecciones inncesarias
+  //para conteoPorRegion se mapea a si mismo el registro del sismo con 1 y luego se reduce (osea suma) con (_ + _)
+  // mientras que para magnitudMaxima el sismo se mapea segun su magnitud para reducir (que se hace con
+  // math.max aplicando los dos valores)
 
   // Punto 3: consultas seguras --------------------------------------------------
 
