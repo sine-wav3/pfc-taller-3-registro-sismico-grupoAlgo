@@ -51,7 +51,6 @@ class RegistroSismicoTest extends AnyFunSuite {
       List("Valle", "Santander", "Valle", "Choco", "Santander", "Valle", "Choco"))
   }
 
-
   test("fuertes: con 5.2 solo salen Choco y Valle, en orden de aparición") {
     assert(fuertes(registro, 5.2) == List("Choco", "Valle"))
   }
