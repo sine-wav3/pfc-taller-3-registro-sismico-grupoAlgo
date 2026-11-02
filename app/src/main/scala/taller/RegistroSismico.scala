@@ -47,11 +47,18 @@ class RegistroSismico {
 
   // Punto 2: agrupar con mapas --------------------------------------------------
 
-  def porRegion(r: Registro): Map[String, List[Sismo]] = ???
+  def porRegion(r: Registro): Map[String, List[Sismo]] = {
+    r.groupBy(_.region) // esta funcion recorre la lista UNA VEZ y evalua cada elemento para la funcion y
+    //el parametro ya se evalua con el map que devuelve la funcion
+  }
 
-  def conteoPorRegion(r: Registro): Map[String, Int] = ???
+  def conteoPorRegion(r: Registro): Map[String, Int] = {
+    r.groupMapReduce(_.region)(_ => 1)(_ + _)
+  }
 
-  def magnitudMaxima(r: Registro): Map[String, Double] = ???
+  def magnitudMaxima(r: Registro): Map[String, Double] = {
+    r.groupMapReduce(_.region)(_.magnitud)((a, b) => Math.max(a, b))
+  }
 
   // Punto 3: consultas seguras --------------------------------------------------
 
