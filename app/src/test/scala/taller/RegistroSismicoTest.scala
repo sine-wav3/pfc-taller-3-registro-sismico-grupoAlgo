@@ -70,7 +70,7 @@ class RegistroSismicoTest extends AnyFunSuite {
 
   // Punto 1: funcion enRegion pruebas propuestas ------------------------------------------------------
 
-  test("enRegion: las magnitudes de Cauca en reg2") {
+  test("enRegion: las magnitudes de Cauca en registro") {
     assert(enRegion(registro, "Cauca") == List())
   }
 
@@ -184,23 +184,98 @@ class RegistroSismicoTest extends AnyFunSuite {
     assert(resultado("Choco").map(_.profundidad) == List(40, 20))
   }
 
-
+  // Punto 2 conteoPorRegion ------------------------------------------------------------------------------------------
   test("conteoPorRegion: tres, dos y dos") {
     assert(conteoPorRegion(registro) ==
       Map("Valle" -> 3, "Santander" -> 2, "Choco" -> 2))
   }
 
+  test("conteoPorRegion: el registro vacío da el mapa vacío") {
+    assert(conteoPorRegion(vacio) == Map())
+  } // ESTE TEST SE MOVIO, MAS NO SE ELIMINO DE LAS QUE YA ESTABAN PLANTEADAS. SE MOVIO DEL LUGAR DONDE ESTABA PARA ORGANIZAR
+  // LAS PRUEBAS PROPUESTAS
+
+  // Punto 2 conteoPorRegion pruebas propuestas ----------------------------------------------------------------------
+
+  test("conteoPorRegion: la suma de todos los conteos es igual al tamaño del registro") {
+    // Propiedad matemática fundamental: ningún sismo se cuenta dos veces ni se pierde
+    val conteos = conteoPorRegion(registro)
+    assert(conteos.values.sum == registro.length)
+  }
+
+  test("conteoPorRegion: regiones repetidas alternadas se agrupan correctamente") {
+    // Valida que el conteo no dependa de que las regiones estén contiguas
+    val alternado = List(
+      Sismo(Fecha(2025, 1), "A", 1.0, 10),
+      Sismo(Fecha(2025, 2), "B", 2.0, 20),
+      Sismo(Fecha(2025, 3), "A", 3.0, 30),
+      Sismo(Fecha(2025, 4), "B", 4.0, 40),
+      Sismo(Fecha(2025, 5), "A", 5.0, 50)
+    )
+    assert(conteoPorRegion(alternado) == Map("A" -> 3, "B" -> 2))
+  }
+
+  test("conteoPorRegion: un solo sismo da conteo de 1 en su región") {
+    // Caso borde: entrada mínima
+    val unico = List(Sismo(Fecha(2025, 8), "Valle", 2.8, 90))
+    assert(conteoPorRegion(unico) == Map("Valle" -> 1))
+  }
+
+  test("conteoPorRegion: el conteo de Santander en el registro base es 2") {
+    // Verificación de un valor específico distinto al ejemplo completo del enunciado
+    assert(conteoPorRegion(registro).contains("Santander"))
+    assert(conteoPorRegion(registro)("Santander") == 2)
+  }
+
+  test("conteoPorRegion: una región inexistente no aparece en el mapa resultante") {
+    // Valida el comportamiento ante claves no presentes
+    assert(!conteoPorRegion(registro).contains("Huila"))
+  }
+
+  // Punto 2 magnitudMaxima -----------------------------------------------------------------------------------------
   test("magnitudMaxima: la mayor de cada región") {
     assert(magnitudMaxima(registro) ==
       Map("Valle" -> 5.3, "Santander" -> 5.1, "Choco" -> 6.0))
   }
 
-  test("conteoPorRegion: el registro vacío da el mapa vacío") {
-    assert(conteoPorRegion(vacio) == Map())
-  }
-
   test("magnitudMaxima: las regiones ausentes no aparecen") {
     assert(!magnitudMaxima(registro).contains("Amazonas"))
+  }
+
+  // Punto 2 magnitudMaxima pruebas propuestas ----------------------------------------------------------------------
+
+  test("magnitudMaxima: la máxima de Valle en el registro base es 5.3") {
+    // Verificación de un valor específico (el enunciado usa el mapa completo)
+    assert(magnitudMaxima(registro).contains("Valle"))
+    assert(magnitudMaxima(registro)("Valle") == 5.3)
+  }
+
+  test("magnitudMaxima: la máxima global de todo el registro es 6.0") {
+    // Valida que la función encuentre el máximo absoluto entre todas las regiones
+    val todasLasMaximas = magnitudMaxima(registro).values
+    assert(todasLasMaximas.max == 6.0)
+    assert(todasLasMaximas.size == 3) // Hay 3 regiones
+  }
+
+  test("magnitudMaxima: las regiones ausentes no aparecen en el mapa") {
+    // Valida que no se inyecten valores por defecto (como 0.0) para regiones inexistentes
+    assert(!magnitudMaxima(registro).contains("Amazonas"))
+    assert(!magnitudMaxima(registro).contains("Bogota"))
+  }
+
+  test("magnitudMaxima: la máxima se conserva aunque esté al principio de la lista") {
+    // Valida que no se sobrescriba la máxima con valores menores posteriores
+    val r = List(
+      Sismo(Fecha(2025, 1), "Santander", 5.5, 10), // La máxima está al inicio
+      Sismo(Fecha(2025, 2), "Santander", 4.0, 20),
+      Sismo(Fecha(2025, 3), "Santander", 2.2, 30)
+    )
+    assert(magnitudMaxima(r)("Santander") == 5.5)
+  }
+
+  test("magnitudMaxima: el registro vacío produce un mapa vacío") {
+    val vacio = List[Sismo]()
+    assert(magnitudMaxima(vacio) == Map())
   }
 
   // Punto 3 -------------------------------------------------------------------
