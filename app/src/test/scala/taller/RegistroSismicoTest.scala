@@ -83,7 +83,7 @@ class RegistroSismicoTest extends AnyFunSuite {
   }
 
   test("enRegion: distingue mayúsculas y minúsculas") {
-    assert(enRegion(registro, "cauca") == List())
+    assert(enRegion(registro, "valle") == List())
   }
 
   test("enRegion: la suma de las cantidades por región es el total de sismos") {
@@ -138,8 +138,8 @@ class RegistroSismicoTest extends AnyFunSuite {
     assert(paresCercanos(vacio, 1.0) == List())
   }
 
-  test("paresCercanos: con 2.0 Cauca y Huila quedan fuera (difieren 2.5)") {
-    assert(!paresCercanos(registro, 2.0).contains(("Cauca", "Huila")))
+  test("paresCercanos: con 2.0 Santander y Valle quedan fuera (difieren 2.5)") {
+    assert(!paresCercanos(registro, 2.0).contains(("Santander", "Valle")))
   }
 
 
@@ -149,6 +149,41 @@ class RegistroSismicoTest extends AnyFunSuite {
     assert(porRegion(registro).keySet == Set("Valle", "Santander", "Choco"))
     assert(porRegion(registro).values.map(_.length).sum == 7)
   }
+
+  // Punto 2 porRegion pruebas propuestas ------------------------------------------------------
+
+  test("porRegion: el registro vacío da el mapa vacío") {
+    assert(porRegion(vacio) == Map())
+  }
+
+  test("porRegion: conserva el orden original dentro de cada grupo") {
+    assert(porRegion(registro)("Valle") == List(
+      Sismo(Fecha(2025, 3), "Valle", 4.2, 30),
+      Sismo(Fecha(2025, 4), "Valle", 3.8, 25),
+      Sismo(Fecha(2025, 5), "Valle", 5.3, 35)
+    ))
+  }
+
+  test("porRegion: no incluye regiones que no aparecen en el registro") {
+    val r = List(Sismo(Fecha(2026, 1), "Meta", 2.8, 15))
+    assert(!porRegion(r).contains("Amazonas"))
+    assert(!porRegion(r).contains("Antioquia"))
+  }
+
+  test("porRegion: conserva el contenido exacto de los sismos por región") {
+    val s1 = Sismo(Fecha(2026, 1), "Santander", 2.0, 5)
+    val s2 = Sismo(Fecha(2026, 2), "Santander", 2.5, 8)
+    val r = List(s1, s2)
+    assert(porRegion(r)("Santander") == List(s1, s2))
+  }
+
+  test("porRegion: conserva el orden original de los sismos en cada región") {
+    // Valida que la agrupación no altere el orden de llegada de los sismos
+    val resultado = porRegion(registro)
+    assert(resultado("Valle").map(_.magnitud) == List(4.2, 3.8, 5.3))
+    assert(resultado("Choco").map(_.profundidad) == List(40, 20))
+  }
+
 
   test("conteoPorRegion: tres, dos y dos") {
     assert(conteoPorRegion(registro) ==
