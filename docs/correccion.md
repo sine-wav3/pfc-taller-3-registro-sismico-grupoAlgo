@@ -1,8 +1,6 @@
 # Informe de corrección: Taller 3, registro sísmico
 
-Este informe argumenta, con notación matemática, que las funciones de los Puntos 1 y 2 cumplen su especificación. Para cada una se enuncia la especificación, se demuestra que la implementación la satisface y se estudia si el resultado depende del orden en que se recorre el registro.
-
-La estructura es la siguiente: primero se fija la notación y se definen formalmente las operaciones sobre listas; luego se demuestran unos lemas generales; finalmente se aplican a cada función.
+Este informe argumenta, con notación matemática, que las funciones establecidas para el taller cumplan con sus requisitos. Para cada una se enuncia la especificación, se demuestra que la implementación la satisface y se estudia si el resultado depende del orden en que se recorre el registro.
 
 ---
 
