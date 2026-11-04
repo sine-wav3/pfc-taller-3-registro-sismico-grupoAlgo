@@ -299,6 +299,158 @@ Esta propiedad es más fuerte que en el Punto 1: el resultado completo no depend
 
 
 ---
+## Punto 3: Correccion de `consultas seguras`
+
+## Notación
+
+Una lista finita se escribe $L = [x_1, x_2, \dots, x_m]$ con $m \ge 0$. El registro es $R = [s_1, \dots, s_n]$ con $n \ge 0$. De cada sismo $s$ interesan:
+
+$\mathrm{reg}(s)$: la región del sismo.
+$\mathrm{mag}(s) \in \mathbb{R}$: la magnitud del sismo.
+
+Definiciones auxiliares:
+
+$\mathrm{Reg}(R) = \{\, \mathrm{reg}(s) : s \in R \,\}$ es el conjunto de regiones presentes en $R$.
+$R_g = [\, s \in R : \mathrm{reg}(s) = g \,]$ es la sublista de los sismos de la región $g$, conservando el orden de $R$.
+
+Lemas usados en el Punto 3
+
+Además de los resultados del informe anterior (Lema 4 sobre groupBy, Lema 6 sobre independencia del orden de una reducción, y los Puntos 2.2 y 2.3), este punto usa los siguientes lemas.
+
+Lema 7 (map sobre las entradas de un mapa)
+
+Sea $M$ un mapa con llaves distintas y sea $F(g, v) = (g, \varphi(g,v))$ una función que conserva la llave. Entonces M.map(F) es un mapa $M'$ tal que:
+
+$\mathrm{dom}(M') = \mathrm{dom}(M)$.
+$M'(g) = \varphi(g, M(g))$ para todo $g \in \mathrm{dom}(M)$.
+
+Demostración. M.map(F) aplica $F$ a cada entrada y construye un mapa con los pares resultantes. Como las llaves de $M$ son todas distintas y $F$ no las modifica, las llaves de los pares resultantes también son todas distintas. Por tanto, ninguna entrada sobrescribe a otra y cada una sobrevive con su llave original y el valor $\varphi(g, M(g))$. De ahí se siguen 1 y 2. Queda demostrado el lema.
+
+Lema 8 (withDefaultValue)
+
+Sea $M$ un mapa y $d$ un valor. Entonces M.withDefaultValue(d) es un mapa $M_d$ tal que:
+
+$\mathrm{dom}(M_d) = \mathrm{dom}(M)$ (las llaves no cambian).
+$M_d(g) = M(g)$ si $g \in \mathrm{dom}(M)$, y $M_d(g) = d$ si $g \notin \mathrm{dom}(M)$.
+
+Demostración. withDefaultValue envuelve al mapa original sin copiar ni agregar entradas. Solo redefine el comportamiento de apply para las llaves ausentes, que en lugar de lanzar NoSuchElementException devuelve $d$. Por eso contains y get siguen reportando como ausentes las llaves que no están en $M$. Queda demostrado el lema.
+
+Lema 9 (maxOption de una lista)
+
+Sea $[y_1,\dots,y_m]$ una lista de reales sin NaN.
+
+Si $m \ge 1$, max devuelve un elemento $y_i$ tal que $y_j \le y_i$ para todo $j$. Es decir, devuelve $\max\{y_1,\dots,y_m\}$.
+maxOption devuelve None si $m = 0$ y Some(max) si $m \ge 1$.
+
+Demostración. La parte 2 es la definición de maxOption. Para la parte 1, max es una reducción hacia la izquierda con el operador $\max$, y se razona por inducción sobre $m$.
+
+Caso base, $m = 1$: el resultado es $y_1$, que es mayor o igual que todos los elementos de la lista, pues es el único.
+Paso inductivo: sea $a$ el resultado para $[y_1,\dots,y_m]$, que por hipótesis es mayor o igual que cada $y_j$ con $j \le m$. Al agregar $y_{m+1}$ se calcula $\max(a, y_{m+1})$, que devuelve el mayor de los dos y es uno de los elementos de la lista. Es mayor o igual que $a$, y por tanto que todos los $y_j$ con $j \le m$, y también que $y_{m+1}$.
+
+Lema 10 (sortBy con llaves distintas)
+
+Sea $L$ una lista de elementos y $\kappa$ una función de llave a un orden total, tal que $\kappa(x) \ne \kappa(y)$ para elementos distintos de $L$. Entonces L.sortBy(κ) es una permutación de $L$ en la que las llaves son estrictamente crecientes, y esa lista es la misma para cualquier ordenamiento inicial de $L$. En particular, su cabeza es el único elemento de $L$ con llave mínima.
+
+Demostración. sortBy devuelve una permutación de $L$ con las llaves en orden no decreciente. Como las llaves son todas distintas, el orden no decreciente es estrictamente creciente. Un conjunto finito de llaves distintas en un orden total tiene un único ordenamiento creciente, por lo que el resultado no depende del orden inicial de $L$. La cabeza de esa lista tiene la llave más pequeña, y es única por ser las llaves distintas. Queda demostrado el lema.
+
+## Corrección de conteoSeguro
+
+Especificación.
+
+$$\mathrm{conteoSeguro}(R)(g) = \lvert R_g \rvert \quad \text{para todo } g \in \mathrm{Reg}(R)$$
+$$\mathrm{conteoSeguro}(R)(g) = 0 \quad \text{para todo } g \notin \mathrm{Reg}(R)$$
+
+La llamada a apply no debe lanzar excepción para ninguna región.
+
+Argumento. La implementación es
+
+scala
+r.groupBy(_.region).map { case (region, sismos) =>
+region -> sismos.size
+}.withDefaultValue(0)
+
+Paso 1: agrupación. Por el Lema 4 con $k = \mathrm{reg}$, r.groupBy(_.region) es un mapa $M$ con $\mathrm{dom}(M) = \mathrm{Reg}(R)$ y $M(g) = R_g$.
+
+Paso 2: conteo. El map aplica $F(g, L) = (g, \lvert L \rvert)$, que conserva la llave. Por el Lema 7, el mapa resultante $M'$ cumple $\mathrm{dom}(M') = \mathrm{Reg}(R)$ y $M'(g) = \lvert M(g) \rvert = \lvert R_g \rvert$.
+
+Paso 3: valor por defecto. Por el Lema 8 con $d = 0$, el mapa final cumple $\mathrm{conteoSeguro}(R)(g) = M'(g) = \lvert R_g \rvert$ si $g \in \mathrm{Reg}(R)$, y vale $0$ si $g \notin \mathrm{Reg}(R)$. Ese segundo caso no lanza excepción, porque apply devuelve el valor por defecto en lugar de fallar.
+
+Casos borde. Si $R = [\,]$, el mapa $M'$ es vacío y toda consulta devuelve $0$. Una región que existe en el registro pero con un solo sismo devuelve $1$.
+
+Consistencia con conteoPorRegion. Para todo $g \in \mathrm{Reg}(R)$ se cumple $\mathrm{conteoSeguro}(R)(g) = \mathrm{conteoPorRegion}(R)(g)$, pues ambos son $\lvert R_g \rvert$ (Punto 2.2). La única diferencia es que conteoSeguro está definido también fuera de $\mathrm{Reg}(R)$, donde vale $0$. Esto es coherente con el hecho de que $\lvert R_g \rvert = 0$ si y solo si $g \notin \mathrm{Reg}(R)$, por lo que la función es $g \mapsto \lvert R_g \rvert$ para toda región $g$.
+
+Observación. El valor por defecto no agrega llaves al mapa: contains(g) y get(g) siguen reportando como ausentes las regiones que no están en $R$, y solo apply devuelve $0$. Esto es consistente con la especificación, que habla del valor de la consulta y no del dominio. Queda demostrada la corrección.
+
+## Corrección de maximaDe
+
+Especificación.
+
+$$\mathrm{maximaDe}(R, g) = \begin{cases} \mathrm{Some}\big(\max\{\mathrm{mag}(s) : s \in R_g\}\big) & \text{si } g \in \mathrm{Reg}(R) \\ \mathrm{None} & \text{si } g \notin \mathrm{Reg}(R) \end{cases}$$
+
+Argumento. La implementación es
+
+scala
+r.filter(_.region == region).map(_.magnitud).maxOption
+
+Paso 1: filtro. Por la definición de $\mathrm{filt}$, r.filter(_.region == region) es la lista $R_g$ de los sismos de la región $g$ en el orden del registro.
+
+Paso 2: proyección. map(_.magnitud) produce la lista $[\mathrm{mag}(t_1),\dots,\mathrm{mag}(t_m)]$ con $[t_1,\dots,t_m] = R_g$, de longitud $m = \lvert R_g \rvert$.
+
+Paso 3: máximo opcional. Se distinguen dos casos:
+
+Si $g \in \mathrm{Reg}(R)$, existe algún $s \in R$ con $\mathrm{reg}(s) = g$, así que $m \ge 1$. Por el Lema 9, maxOption devuelve $\mathrm{Some}\big(\max\{\mathrm{mag}(t_i)\}\big)$, que es la especificación.
+Si $g \notin \mathrm{Reg}(R)$, ningún sismo cumple el filtro, luego $m = 0$ y por el Lema 9 maxOption devuelve None.
+
+Casos borde. Si $R = [\,]$, la consulta devuelve None para cualquier región. Nunca se lanza excepción, porque maxOption (a diferencia de max) está definido sobre la lista vacía.
+
+Consistencia con magnitudMaxima. Para $g \in \mathrm{Reg}(R)$ se cumple $\mathrm{maximaDe}(R,g) = \mathrm{Some}\big(\mathrm{magnitudMaxima}(R)(g)\big)$ (Punto 2.3), y para $g \notin \mathrm{Reg}(R)$ la respuesta es None, donde magnitudMaxima no tiene entrada. El tipo Option es lo que hace explícita la ausencia.
+
+Exactitud numérica. Como en el Punto 2.3, $\max$ devuelve uno de sus argumentos sin modificarlo, por lo que el valor entregado es exactamente una de las magnitudes del registro. Se supone que no hay NaN. Queda demostrada la corrección.
+
+## Corrección de regionMasActiva
+
+Especificación. Sea $\kappa(g) = (-\lvert R_g \rvert,\ g)$ para $g \in \mathrm{Reg}(R)$, ordenada lexicográficamente (primero por la primera componente y, en empate, por la segunda, con el orden natural de las cadenas). Entonces
+
+$$\mathrm{regionMasActiva}(R) = \begin{cases} \mathrm{None} & \text{si } R = [\,] \\ \mathrm{Some}(g^*) & \text{si } R \ne [\,],\ \text{con } g^* \in \mathrm{Reg}(R) \text{ de } \kappa \text{ mínima} \end{cases}$$
+
+Desarrollado, $g^*$ cumple dos condiciones: $\lvert R_{g^*} \rvert \ge \lvert R_g \rvert$ para todo $g \in \mathrm{Reg}(R)$, y entre las regiones con el conteo máximo, $g^*$ es la menor en orden alfabético.
+
+Argumento. La implementación es
+
+scala
+r.groupBy(_.region)
+.toList
+.sortBy { case (region, sismos) => (-sismos.size, region) }
+.headOption
+.map(_._1)
+
+Paso 1: la lista de entradas. Por el Lema 4, r.groupBy(_.region) es un mapa con dominio $\mathrm{Reg}(R)$, y toList produce una lista con exactamente un par $(g, R_g)$ por cada $g \in \mathrm{Reg}(R)$. El orden de esta lista depende de la iteración interna del mapa y no forma parte de la especificación, pero no importa, como muestra el Paso 3.
+
+Paso 2: la llave. La función de ordenamiento asigna al par $(g, R_g)$ la llave $(-\lvert R_g \rvert, g) = \kappa(g)$. Dos pares distintos tienen regiones distintas, así que sus llaves difieren al menos en la segunda componente. Por tanto, las llaves son todas distintas.
+
+Paso 3: ordenamiento. Por el Lema 10, sortBy produce una lista única, con $\kappa$ estrictamente creciente y sin depender del orden de la lista inicial. Su cabeza es el par con $\kappa$ mínima.
+
+Paso 4: la cabeza. Se distinguen dos casos:
+
+Si $R = [\,]$, entonces $\mathrm{Reg}(R) = \emptyset$, la lista es vacía y headOption devuelve None.
+Si $R \ne [\,]$, la lista es no vacía, headOption devuelve la cabeza $(g^*, R_{g^*})$ y .map(_._1) extrae $g^*$.
+
+Paso 5: lectura de la condición. Como $\kappa(g^*) < \kappa(g)$ para todo $g \ne g^*$, o bien $-\lvert R_{g^*} \rvert < -\lvert R_g \rvert$, o bien los conteos son iguales y $g^* < g$. En ambos casos $\lvert R_{g^*} \rvert \ge \lvert R_g \rvert$, así que $g^*$ tiene el conteo máximo. Y entre las regiones con ese conteo máximo, $g^*$ es menor que todas las demás en orden alfabético. Esto es exactamente la especificación.
+
+Casos borde. Si $R = [\,]$ el resultado es None. Si hay una sola región, el resultado es Some de esa región. Si todas las regiones empatan en conteo, el resultado es la primera en orden alfabético. Como $\lvert R_g \rvert \ge 1$ para toda $g \in \mathrm{Reg}(R)$, la negación $-\lvert R_g \rvert$ no produce desbordamiento.
+
+Observación sobre el orden alfabético. El orden natural de String en Scala es el lexicográfico por unidad de código, por lo que las mayúsculas anteceden a las minúsculas y las vocales con tilde quedan después de las letras sin tilde. Con nombres de región escritos de forma homogénea (por ejemplo, todos con la inicial en mayúscula) esto coincide con el orden alfabético esperado. Queda demostrada la corrección.
+
+## Independencia del orden de recorrido en el Punto 3
+
+Sea $R^\pi$ una permutación cualquiera de $R$.
+
+conteoSeguro. El grupo de la región $g$ en $R^\pi$ contiene los mismos sismos que en $R$, posiblemente en otro orden, así que su tamaño es el mismo: $\lvert R^\pi_g \rvert = \lvert R_g \rvert$. Como el valor de cada consulta es ese tamaño (o $0$ si $g$ está ausente), se cumple $\mathrm{conteoSeguro}(R^\pi) = \mathrm{conteoSeguro}(R)$ en toda consulta.
+
+maximaDe. La presencia de una región, $g \in \mathrm{Reg}(R)$, no depende del orden, y el máximo de un grupo tampoco, por el Lema 6 ($\max$ es asociativo y conmutativo). Por tanto, $\mathrm{maximaDe}(R^\pi, g) = \mathrm{maximaDe}(R, g)$ para toda región $g$.
+
+regionMasActiva. El resultado depende solo de $\kappa(g) = (-\lvert R_g \rvert, g)$, que es invariante bajo permutaciones del registro. Por tanto, $\mathrm{regionMasActiva}(R^\pi) = \mathrm{regionMasActiva}(R)$. Además, el criterio de desempate alfabético es lo que hace determinista el resultado: sin él, un empate se resolvería según el orden de iteración del mapa, que no es parte de la especificación. Aquí el resultado es independiente tanto del orden del registro como del orden interno del mapa (Lema 10).
+
 
 ## Punto 4: corrección de `replicas` y `replicasSensibles`
 
@@ -342,3 +494,94 @@ limitación del redondeo a dos decimales que pide el enunciado.
 $r = 6.0,\ 4.8,\ 3.84,\ 3.07,\ 2.46$, así que $j = 4$ y la lista tiene 4
 elementos. Coincide con `Resumen(2, 6.0, 4)` de Chocó.
 
+## Punto 5: correcion de `informe combinado`
+
+## Lemas usados en el Punto 5
+
+Además de los resultados del informe anterior (Lema 4 sobre groupBy, Lema 6 sobre independencia del orden de una reducción, Teorema 3 del Punto 4 y los Puntos corrección de informe y independencia del orden de recorrido en el Punto 5), este punto usa los siguientes lemas. Son autónomos: no dependen de los lemas del Punto 3.
+
+Lema 11 (map sobre las entradas de un mapa)
+
+Sea $M$ un mapa con llaves distintas y sea $F(g, v) = (g, \varphi(g,v))$ una función que conserva la llave. Entonces M.map(F) es un mapa $M'$ tal que:
+
+$\mathrm{dom}(M') = \mathrm{dom}(M)$.
+$M'(g) = \varphi(g, M(g))$ para todo $g \in \mathrm{dom}(M)$.
+
+Demostración. M.map(F) aplica $F$ a cada entrada y construye un mapa con los pares resultantes. Como las llaves de $M$ son todas distintas y $F$ no las modifica, las llaves de los pares resultantes también son todas distintas. Por tanto, ninguna entrada sobrescribe a otra y cada una sobrevive con su llave original y el valor $\varphi(g, M(g))$. De ahí se siguen 1 y 2. Queda demostrado el lema.
+
+Lema 12 (max de una lista no vacía)
+
+Sea $[y_1,\dots,y_m]$ una lista de reales sin NaN con $m \ge 1$. Entonces max devuelve un elemento $y_i$ tal que $y_j \le y_i$ para todo $j$, es decir, devuelve $\max\{y_1,\dots,y_m\}$. Si $m = 0$, max lanza una excepción.
+
+Demostración. max es una reducción hacia la izquierda con el operador $\max$, y se razona por inducción sobre $m$.
+
+Caso base, $m = 1$: el resultado es $y_1$, que es mayor o igual que todos los elementos de la lista, pues es el único.
+Paso inductivo: sea $a$ el resultado para $[y_1,\dots,y_m]$, que por hipótesis es mayor o igual que cada $y_j$ con $j \le m$. Al agregar $y_{m+1}$ se calcula $\max(a, y_{m+1})$, que devuelve el mayor de los dos y es uno de los elementos de la lista. Es mayor o igual que $a$, y por tanto que todos los $y_j$ con $j \le m$, y también que $y_{m+1}$.
+
+## Corrección de informe
+
+Notación. Sea $\mu$ el parámetro minimo, con $\mu \ge 0.02$ (precondición del Teorema 3, necesaria para que replicasSensibles termine). Para $g \in \mathrm{Reg}(R)$ sea
+
+$$M_g = \max\{\mathrm{mag}(s) : s \in R_g\}$$
+
+y sea $N(m, \mu) = \lvert \texttt{replicasSensibles}(m, \mu) \rvert$ la cantidad de réplicas esperadas para una magnitud $m$.
+
+Especificación.
+
+$$\mathrm{dom}\big(\mathrm{informe}(R,\mu)\big) = \mathrm{Reg}(R)$$
+$$\mathrm{informe}(R,\mu)(g) = \mathrm{Resumen}\big(\lvert R_g \rvert,\ M_g,\ N(M_g, \mu)\big) \quad \text{para todo } g \in \mathrm{Reg}(R)$$
+
+Argumento. La implementación es
+
+scala
+r.groupBy(_.region).map { case (region, sismos) =>
+val conteo = sismos.size
+val maxima = sismos.map(_.magnitud).max
+val replicas = replicasSensibles(maxima, minimo).size
+
+region -> Resumen(conteo, maxima, replicas)
+}
+
+Paso 1: agrupación y dominio. Por el Lema 4, r.groupBy(_.region) es un mapa $M$ con $\mathrm{dom}(M) = \mathrm{Reg}(R)$ y $M(g) = R_g$. La función del map conserva la llave $g$, así que por el Lema 7 el resultado tiene dominio $\mathrm{Reg}(R)$ y, para cada $g$, valor igual a lo que calcula el cuerpo del case con sismos $= R_g$.
+
+Paso 2: conteo. conteo = sismos.size $= \lvert R_g \rvert$.
+
+Paso 3: máxima. sismos.map(_.magnitud) es la lista $[\mathrm{mag}(t_1),\dots,\mathrm{mag}(t_m)]$ con $[t_1,\dots,t_m] = R_g$. Todo grupo creado por groupBy tiene al menos un elemento (Lema 4: una llave existe solo si algún $s \in R$ la tiene), por lo que $m \ge 1$ y .max no se aplica nunca a una lista vacía ni lanza excepción. Por el Lema 9, maxima $= M_g$.
+
+Paso 4: réplicas. Por el Teorema 3 del Punto 4, replicasSensibles(M_g, μ) es la lista $[r_0,\dots,r_{j-1}]$, donde $r_0 = \mathrm{red}(M_g)$ y $j$ es el menor índice con $r_j \le \mu$. Su tamaño es $j$, así que replicas $= j = N(M_g, \mu)$. La precondición $\mu \ge 0.02$ asegura que $j$ existe y que la evaluación termina.
+
+Paso 5: ensamblado. Con los Pasos 2 a 4, el valor asociado a $g$ es $\mathrm{Resumen}(\lvert R_g \rvert, M_g, N(M_g,\mu))$, que es la especificación.
+
+Casos borde.
+
+Si $R = [\,]$, el mapa $M$ es vacío, no se ejecuta ningún cuerpo del case y el resultado es el mapa vacío.
+Si $M_g \le \mu$, ya $r_0 = \mathrm{red}(M_g) \le \mu$, por lo que $j = 0$ y replicas $= 0$. Esto ocurre, por ejemplo, para una región cuyo sismo más fuerte ya es débil.
+Si $\mu < 0.02$, la secuencia de réplicas se estanca en $0.02$ (observación del Punto 4) y informe no termina para ninguna región con $M_g > \mu$. Por eso la precondición es necesaria y no solo conveniente.
+
+Verificación con el ejemplo del Punto 4. Para la región Chocó, con $\lvert R_g \rvert = 2$, $M_g = 6.0$ y $\mu = 3.0$, la secuencia es $6.0,\ 4.8,\ 3.84,\ 3.07,\ 2.46$. Aquí $r_3 = 3.07 > 3.0$ y $r_4 = 2.46 \le 3.0$, así que $j = 4$ y
+
+$$\mathrm{informe}(R, 3.0)(\text{Chocó}) = \mathrm{Resumen}(2,\ 6.0,\ 4)$$
+
+que coincide con el valor esperado.
+
+Consistencia con los puntos anteriores. Para todo $g \in \mathrm{Reg}(R)$, el primer campo coincide con $\mathrm{conteoPorRegion}(R)(g)$ (Corrección de maximaDe del Punto 3) y el segundo con $\mathrm{magnitudMaxima}(R)(g)$ (Corrección de regionMasActiva del Punto 3). El tercero es una función solo de $M_g$ y $\mu$ (Punto 4).
+
+## Independencia del orden de recorrido en el Punto 5
+
+Sea $R^\pi$ una permutación cualquiera de $R$.
+
+Por campo. Se cumple $\mathrm{Reg}(R^\pi) = \mathrm{Reg}(R)$, así que los dominios coinciden. Para cada $g$:
+
+El primer campo es $\lvert R_g \rvert$, invariante porque el grupo tiene los mismos sismos (Punto 3).
+El segundo es $M_g$, invariante por el Lema 6.
+El tercero es $N(M_g, \mu)$, una función determinista de $M_g$ y $\mu$ que no consulta el registro, y por tanto también es invariante.
+
+Se concluye que
+
+$$\mathrm{informe}(R^\pi, \mu) = \mathrm{informe}(R, \mu)$$
+
+como mapas.
+
+Orden de las llaves. Como en la independencia del orden de recorrido en el punto 3, la igualdad entre mapas no depende del orden de inserción de las llaves, y el orden en que un Map las presenta no es parte de la especificación.
+
+Conclusión. Igual que conteoPorRegion y magnitudMaxima, informe no depende del orden del registro, porque cada campo es una reducción con un operador asociativo y conmutativo o una función de ese resultado. Esto permitiría calcularlo por partes (por ejemplo, en paralelo, combinando conteo con $+$ y maxima con $\max$ y derivando replicas al final).
