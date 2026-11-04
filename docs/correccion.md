@@ -411,10 +411,9 @@ Exactitud numérica. Como en el Punto 2.3, $\max$ devuelve uno de sus argumentos
 
 Especificación. Sea $\kappa(g) = (-\lvert R_g \rvert,\ g)$ para $g \in \mathrm{Reg}(R)$, ordenada lexicográficamente (primero por la primera componente y, en empate, por la segunda, con el orden natural de las cadenas). Entonces
 
-$$\mathrm{regionMasActiva}(R) = \begin{cases} \mathrm{None} & \text{si } R = [\,] \\ \mathrm{Some}(g^*) & \text{si } R \ne [\,],\ \text{con } g^* \in \mathrm{Reg}(R) \text{ de } \kappa \text{ mínima} \end{cases}$$
+$$\mathrm{regionMasActiva}(R) = \begin{cases} \mathrm{None} & \text{si } R = [\,] \\ \mathrm{Some}(g^{\star}) & \text{si } R \ne [\,],\ \text{con } g^{\star} \in \mathrm{Reg}(R) \text{ de } \kappa \text{ mínima} \end{cases}$$
 
-Desarrollado, $g^*$ cumple dos condiciones: $\lvert R_{g^*} \rvert \ge \lvert R_g \rvert$ para todo $g \in \mathrm{Reg}(R)$, y entre las regiones con el conteo máximo, $g^*$ es la menor en orden alfabético.
-
+Desarrollado, $g^{\star}$ cumple dos condiciones: $\lvert R_{g^{\star}} \rvert \ge \lvert R_g \rvert$ para todo $g \in \mathrm{Reg}(R)$, y entre las regiones con el conteo máximo, $g^{\star}$ es la menor en orden alfabético.
 Argumento. La implementación es
 
 scala
