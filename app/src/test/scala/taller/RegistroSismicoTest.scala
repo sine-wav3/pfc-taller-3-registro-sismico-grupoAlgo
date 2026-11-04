@@ -315,6 +315,97 @@ class RegistroSismicoTest extends AnyFunSuite {
     assert(regionMasActiva(empate) == Some("Arauca"))
   }
 
+  // Punto 3 pruebas propuestas -------------------------------------------------------------------
+
+  test("conteoSeguro: Choco tiene dos sismos") {
+    assert(conteoSeguro(registro)("Choco") == 2)
+  }
+
+  test("conteoSeguro: una región inexistente devuelve cero") {
+    assert(conteoSeguro(registro)("Nariño") == 0)
+  }
+
+  test("conteoSeguro: una región con un solo sismo devuelve uno") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Cauca", 4.5, 20)
+    )
+    assert(conteoSeguro(datos)("Cauca") == 1)
+  }
+
+  test("conteoSeguro: registro vacío devuelve cero") {
+    val vacio = List.empty[Sismo]
+    assert(conteoSeguro(vacio)("Valle") == 0)
+  }
+
+  test("conteoSeguro: varias regiones tienen conteos independientes") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Valle", 4.0, 20),
+      Sismo(Fecha(2025, 2), "Valle", 5.0, 30),
+      Sismo(Fecha(2025, 3), "Cauca", 3.5, 15)
+    )
+    assert(conteoSeguro(datos)("Valle") == 2)
+    assert(conteoSeguro(datos)("Cauca") == 1)
+  }
+
+  test("maximaDe: Valle tiene magnitud máxima de 5.3") {
+    assert(maximaDe(registro, "Valle") == Some(5.3))
+  }
+
+  test("maximaDe: Santander tiene magnitud máxima de 5.1") {
+    assert(maximaDe(registro, "Santander") == Some(5.1))
+  }
+
+  test("maximaDe: región desconocida devuelve None") {
+    assert(maximaDe(registro, "Amazonas") == None)
+  }
+
+  test("maximaDe: registro vacío devuelve None") {
+    val vacio = List.empty[Sismo]
+    assert(maximaDe(vacio, "Valle") == None)
+  }
+
+  test("maximaDe: región con un solo sismo devuelve su magnitud") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Cauca", 4.8, 20)
+    )
+    assert(maximaDe(datos, "Cauca") == Some(4.8))
+  }
+
+  test("regionMasActiva: Valle es la región más activa") {
+    assert(regionMasActiva(registro) == Some("Valle"))
+  }
+
+  test("regionMasActiva: registro vacío devuelve None") {
+    val vacio = List.empty[Sismo]
+    assert(regionMasActiva(vacio) == None)
+  }
+
+  test("regionMasActiva: una sola región devuelve su nombre") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Cauca", 4.0, 20),
+      Sismo(Fecha(2025, 2), "Cauca", 5.0, 30)
+    )
+    assert(regionMasActiva(datos) == Some("Cauca"))
+  }
+
+  test("regionMasActiva: empate entre regiones gana la alfabéticamente primera") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Zulia", 4.0, 10),
+      Sismo(Fecha(2025, 1), "Arauca", 4.0, 10)
+    )
+    assert(regionMasActiva(datos) == Some("Arauca"))
+  }
+
+  test("regionMasActiva: gana la región con mayor cantidad de sismos") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Cauca", 4.0, 20),
+      Sismo(Fecha(2025, 2), "Valle", 5.0, 30),
+      Sismo(Fecha(2025, 3), "Valle", 3.5, 15),
+      Sismo(Fecha(2025, 4), "Valle", 4.5, 25)
+    )
+    assert(regionMasActiva(datos) == Some("Valle"))
+  }
+
   // Punto 4 -------------------------------------------------------------------
 
   test("replicas: las primeras cuatro de un sismo de 5.0") {
@@ -391,5 +482,58 @@ class RegistroSismicoTest extends AnyFunSuite {
   test("informe: las réplicas coinciden con replicasSensibles del más fuerte") {
     assert(informe(registro, 3.0)("Choco").replicas ==
       replicasSensibles(6.0, 3.0).length)
+  }
+
+  // Punto 5 pruebas propuestas-------------------------------------------------------------------
+
+  test("informe: una región con un solo sismo") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Cauca", 5.0, 30)
+    )
+
+    assert(informe(datos, 3.0)("Cauca") == Resumen(1, 5.0, 3))
+  }
+
+  test("informe: ninguna réplica supera el mínimo") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Valle", 4.0, 20),
+      Sismo(Fecha(2025, 2), "Valle", 3.5, 25)
+    )
+
+    assert(informe(datos, 5.0)("Valle") == Resumen(2, 4.0, 0))
+  }
+
+  test("informe: calcula correctamente dos regiones") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Cauca", 5.0, 30),
+      Sismo(Fecha(2025, 2), "Cauca", 4.0, 20),
+      Sismo(Fecha(2025, 3), "Nariño", 6.0, 40)
+    )
+
+    val esperado = Map(
+      "Cauca" -> Resumen(2, 5.0, 3),
+      "Nariño" -> Resumen(1, 6.0, 4)
+    )
+
+    assert(informe(datos, 3.0) == esperado)
+  }
+
+  test("informe: sismos con magnitudes iguales") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Santander", 4.0, 20),
+      Sismo(Fecha(2025, 2), "Santander", 4.0, 30),
+      Sismo(Fecha(2025, 3), "Santander", 4.0, 25)
+    )
+
+    assert(informe(datos, 3.0)("Santander") == Resumen(3, 4.0, 2))
+  }
+
+  test("informe: el mínimo igual a la magnitud máxima no cuenta") {
+    val datos = List(
+      Sismo(Fecha(2025, 1), "Choco", 5.0, 30),
+      Sismo(Fecha(2025, 2), "Choco", 4.0, 20)
+    )
+
+    assert(informe(datos, 5.0)("Choco") == Resumen(2, 5.0, 0))
   }
 }
