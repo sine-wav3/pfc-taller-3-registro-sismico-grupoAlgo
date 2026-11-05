@@ -729,7 +729,7 @@ Para obtener `replicas` se genera la secuencia a partir de `maxima`, redondeando
 | Santander | 5.1, 4.08, 3.26, 2.61 | 5.1, 4.08, 3.26 | 2.61 | 3 |
 | Choco | 6.0, 4.8, 3.84, 3.07, 2.46 | 6.0, 4.8, 3.84, 3.07 | 2.46 | 4 |
 
-El detalle de los cálculos de cada secuencia es:
+El detalle de los cálculos para cada secuencia es:
 
 | Región | Paso | Cálculo | Valor redondeado |
 |---|---|---|---|
